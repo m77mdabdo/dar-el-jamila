@@ -24,5 +24,5 @@
         {{ __('emails.payment_failed_note') }}
     </p>
 
-    @include('emails.partials.button', ['href' => route('checkout.success', $order), 'label' => __('emails.payment_failed_button')])
+    @include('emails.partials.button', ['href' => $order->successUrl(), 'label' => __('emails.payment_failed_button')])
 @endsection

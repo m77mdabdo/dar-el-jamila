@@ -64,7 +64,7 @@ class CheckoutStockTest extends TestCase
         $response = $this->actingAs($user)->post(route('checkout.store'), $this->checkoutPayload($shippingMethod, $user));
 
         $order = Order::first();
-        $response->assertRedirect(route('checkout.success', $order));
+        $response->assertRedirect($order->successUrl());
 
         $this->assertSame(3, $product->sizes()->where('size', 'M')->value('stock'));
         $this->assertNotNull($order->fresh()->stock_deducted_at);
@@ -135,7 +135,7 @@ class CheckoutStockTest extends TestCase
         // failure — not rolled back, not a generic "something went wrong" error.
         $order = Order::first();
         $this->assertNotNull($order, 'Order was rolled back when the stock-alert notification failed — the exact bug this fix addresses.');
-        $response->assertRedirect(route('checkout.success', $order));
+        $response->assertRedirect($order->successUrl());
         $response->assertSessionDoesntHaveErrors();
 
         $this->assertSame(0, $product->sizes()->where('size', 'M')->value('stock'));
@@ -173,7 +173,7 @@ class CheckoutStockTest extends TestCase
 
         $order = Order::first();
         $this->assertNotNull($order, 'Order was rolled back or the response failed when the cart-converted admin notification failed — the exact bug this fix addresses.');
-        $response->assertRedirect(route('checkout.success', $order));
+        $response->assertRedirect($order->successUrl());
         $response->assertSessionDoesntHaveErrors();
 
         // The cart must still be marked converted despite the notification

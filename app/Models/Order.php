@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Facades\URL;
 
 class Order extends Model
 {
@@ -71,6 +72,18 @@ class Order extends Model
     public function statusHistories(): HasMany
     {
         return $this->hasMany(OrderStatusHistory::class)->latest('created_at');
+    }
+
+    /**
+     * Signed link to this order's confirmation page. The page shows the
+     * customer's name, contact details and delivery address, so it must
+     * never be reachable by guessing the sequential order id — the
+     * signature is the only thing that grants access (same convention as
+     * invoice.download and track-order.show).
+     */
+    public function successUrl(): string
+    {
+        return URL::signedRoute('checkout.success', ['order' => $this->id]);
     }
 
     /**
