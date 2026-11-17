@@ -347,7 +347,7 @@ class CheckoutController extends Controller
 
             $this->cart->clear();
 
-            return redirect()->route('checkout.success', $order)->with('status', __('Order placed successfully.'));
+            return redirect()->to($order->successUrl())->with('status', __('Order placed successfully.'));
         }
 
         // Everything below only runs once the order is durably committed —
@@ -410,7 +410,7 @@ class CheckoutController extends Controller
 
         $this->cart->clear();
 
-        return redirect()->route('checkout.success', $order)->with('status', __('Order placed successfully.'));
+        return redirect()->to($order->successUrl())->with('status', __('Order placed successfully.'));
     }
 
     public function success(Order $order): View

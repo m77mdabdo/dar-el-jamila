@@ -1,0 +1,99 @@
+name: CI
+
+# Runs on every branch push and pull request. Protect `main` with the
+# "CI / Tests", "CI / Frontend" and "CI / Security audit" checks so
+# nothing reaches Hostinger's auto-deploy unless all three pass.
+on:
+  push:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, intl, gd, zip, pdo_sqlite, bcmath, gmp
+          coverage: none
+
+      - name: Cache Composer packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache/files
+          key: composer-${{ hashFiles('composer.lock') }}
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      # Only an app key: the suite relies on the config defaults
+      # (e.g. APP_LOCALE=ar), and phpunit.xml sets everything else.
+      - name: Prepare environment
+        run: |
+          echo "APP_KEY=" > .env
+          php artisan key:generate
+
+      - name: Run tests
+        run: php artisan test
+
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci --ignore-scripts
+
+      - name: Build
+        run: npm run build
+
+  audit:
+    name: Security audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Composer audit
+        run: composer audit --locked
+
+      - name: npm audit
+        run: npm audit --audit-level=high
+
+      - name: No secrets or env files tracked
+        run: |
+          if git ls-files | grep -E '(^|/)\.env($|\.)' | grep -v '^\.env\.example$'; then
+            echo "::error::An .env file is tracked by git"; exit 1
+          fi
+          if git grep -nE '(sk_live_|pk_live_|-----BEGIN [A-Z ]*PRIVATE KEY-----|ghp_[A-Za-z0-9]{36}|AKIA[0-9A-Z]{16})' -- ':!*.lock' ':!package-lock.json' ':!.github/workflows'; then
+            echo "::error::Possible secret committed"; exit 1
+          fi
+
+      - name: Root .htaccess routes everything to public/
+        run: grep -q 'RewriteRule \^(\.\*)\$ public/\$1' .htaccess

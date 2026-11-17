@@ -71,7 +71,7 @@ class CheckoutFlowTest extends TestCase
         $response = $this->actingAs($user)->post(route('checkout.store'), $this->checkoutPayload($user));
 
         $order = Order::first();
-        $response->assertRedirect(route('checkout.success', $order));
+        $response->assertRedirect($order->successUrl());
         $this->assertSame('standard', $order->shipping_method_code);
         $this->assertSame(Order::PAYMENT_METHOD_COD, $order->payment_method);
         $this->assertSame(Order::PAYMENT_STATUS_PENDING, $order->payment_status);
@@ -124,7 +124,7 @@ class CheckoutFlowTest extends TestCase
         $response = $this->actingAs($user)->post(route('checkout.store'), $this->checkoutPayload($user));
 
         $order = Order::first();
-        $response->assertRedirect(route('checkout.success', $order));
+        $response->assertRedirect($order->successUrl());
         $this->assertNull($order->customer_latitude);
         $this->assertNull($order->customer_longitude);
     }
@@ -154,7 +154,7 @@ class CheckoutFlowTest extends TestCase
         $this->actingAs($user)->post(route('checkout.store'), $this->checkoutPayload($user));
         $order = Order::first();
 
-        $response = $this->actingAs($user)->get(route('checkout.success', $order));
+        $response = $this->actingAs($user)->get($order->successUrl());
 
         $response->assertOk();
         $response->assertSee($order->order_number);

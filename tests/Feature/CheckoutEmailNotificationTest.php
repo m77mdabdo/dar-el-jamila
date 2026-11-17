@@ -269,7 +269,7 @@ class CheckoutEmailNotificationTest extends TestCase
         $response = $this->actingAs($user)->post(route('checkout.store'), $this->checkoutPayload($user->email, $user->name));
 
         $order = Order::latest('id')->first();
-        $response->assertRedirect(route('checkout.success', $order));
+        $response->assertRedirect($order->successUrl());
         $this->assertNotNull($order);
         $this->assertSame($user->email, $order->customer_email);
     }
