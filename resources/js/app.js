@@ -219,6 +219,13 @@ window.djRemoveFromCart = async function (removeUrlBase, key, triggerEl) {
     }
 };
 
+/* Escapes a value for safe use inside HTML text or a quoted attribute.
+   Product/article fields come from the admin panel and must never be
+   interpreted as markup when the modals are built with innerHTML. */
+function djEsc(value) {
+    return String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
 /* ===== PRODUCT QUICK-VIEW MODAL ===== */
 let djModalProduct = null;
 let djModalSize = null;
@@ -304,18 +311,18 @@ function djRenderProductModal() {
     const stock = p.sizes.find(s => s.size === djModalSize)?.stock ?? 0;
     const sizesHtml = p.sizes.map(s => `
         <div class="dj-size-opt ${s.size === djModalSize ? 'dj-active' : ''} ${s.stock <= 0 ? 'dj-disabled' : ''}"
-             onclick="${s.stock > 0 ? `djSelectModalSize('${s.size}')` : ''}">${s.size}</div>
+             onclick="${s.stock > 0 ? `djSelectModalSize(${djEsc(JSON.stringify(s.size))})` : ''}">${djEsc(s.size)}</div>
     `).join('');
 
     mount.innerHTML = `
         <button class="dj-modal-close" onclick="djCloseModal()" aria-label="${(window.djI18n && window.djI18n.close) || 'Close'}">&times;</button>
-        <div class="dj-modal-image dj-photo-wrap dj-tint-maroon"><img src="${p.image}" alt="${p.name}"></div>
+        <div class="dj-modal-image dj-photo-wrap dj-tint-maroon"><img src="${djEsc(p.image)}" alt="${djEsc(p.name)}"></div>
         <div class="dj-modal-info">
             ${djWishlistHeartHtml(p)}
-            <h2>${p.name}</h2>
+            <h2>${djEsc(p.name)}</h2>
             ${p.rating ? `<div class="dj-rating">★★★★★ <span class="dj-rn">${p.rating} · ${p.ratingLabel}</span></div>` : ''}
             <div class="dj-price" style="margin-top:8px;">${p.priceFormatted}</div>
-            <div class="dj-desc">${p.description}</div>
+            <div class="dj-desc">${djEsc(p.description)}</div>
             <div class="dj-sizes">${sizesHtml}</div>
             <div class="dj-stock-badge ${djStockStatusClass(stock, p)}">${djStockStatusLabel(stock, p)}</div>
             <div class="dj-qty-select">
@@ -326,7 +333,7 @@ function djRenderProductModal() {
             <div class="dj-modal-trust">
                 <span>${p.trust1}</span><span>${p.trust2}</span><span>${p.trust3}</span>
             </div>
-            <a href="${p.detailsUrl}" class="dj-modal-view-details">${p.viewDetailsLabel}</a>
+            <a href="${djEsc(p.detailsUrl)}" class="dj-modal-view-details">${p.viewDetailsLabel}</a>
         </div>
     `;
 }
@@ -337,12 +344,12 @@ window.djOpenArticleModal = function (article) {
     mount.classList.add('dj-article');
     mount.innerHTML = `
         <button class="dj-modal-close" onclick="djCloseModal()" aria-label="${(window.djI18n && window.djI18n.close) || 'Close'}">&times;</button>
-        <div class="dj-article-cover dj-photo-wrap dj-tint-maroon"><img src="${article.image}" alt=""></div>
+        <div class="dj-article-cover dj-photo-wrap dj-tint-maroon"><img src="${djEsc(article.image)}" alt=""></div>
         <div class="dj-article-body">
-            <div class="dj-blog-date">${article.category} · ${article.date}</div>
-            <h2>${article.title}</h2>
-            <p>${article.excerpt}</p>
-            <a href="${article.url}" class="dj-read-more">${article.readMoreLabel}</a>
+            <div class="dj-blog-date">${djEsc(article.category)} · ${djEsc(article.date)}</div>
+            <h2>${djEsc(article.title)}</h2>
+            <p>${djEsc(article.excerpt)}</p>
+            <a href="${djEsc(article.url)}" class="dj-read-more">${article.readMoreLabel}</a>
         </div>
     `;
     document.getElementById('dj-modal-overlay')?.classList.add('dj-show');
