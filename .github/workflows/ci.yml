@@ -91,7 +91,7 @@ jobs:
           if git ls-files | grep -E '(^|/)\.env($|\.)' | grep -v '^\.env\.example$'; then
             echo "::error::An .env file is tracked by git"; exit 1
           fi
-          if git grep -nE '(sk_live_|pk_live_|-----BEGIN [A-Z ]*PRIVATE KEY-----|ghp_[A-Za-z0-9]{36}|AKIA[0-9A-Z]{16})' -- ':!*.lock' ':!package-lock.json'; then
+          if git grep -nE '(sk_live_|pk_live_|-----BEGIN [A-Z ]*PRIVATE KEY-----|ghp_[A-Za-z0-9]{36}|AKIA[0-9A-Z]{16})' -- ':!*.lock' ':!package-lock.json' ':!.github/workflows'; then
             echo "::error::Possible secret committed"; exit 1
           fi
 
