@@ -198,7 +198,7 @@ class MarketingTrackingTest extends TestCase
         $order = $this->makeOrder();
         $viewer = \App\Models\User::factory()->create();
 
-        $response = $this->actingAs($viewer)->get(route('checkout.success', $order));
+        $response = $this->actingAs($viewer)->get($order->successUrl());
 
         $response->assertOk();
         $response->assertSee("djTrack('purchase'", false);
@@ -213,12 +213,12 @@ class MarketingTrackingTest extends TestCase
         $order = $this->makeOrder();
         $viewer = \App\Models\User::factory()->create();
 
-        $this->actingAs($viewer)->get(route('checkout.success', $order))->assertOk();
+        $this->actingAs($viewer)->get($order->successUrl())->assertOk();
         $firedAt = $order->fresh()->purchase_event_fired_at;
         $this->assertNotNull($firedAt);
 
         // Refresh the same success page.
-        $second = $this->actingAs($viewer)->get(route('checkout.success', $order));
+        $second = $this->actingAs($viewer)->get($order->successUrl());
 
         $second->assertOk();
         $second->assertDontSee("djTrack('purchase'", false);
@@ -232,7 +232,7 @@ class MarketingTrackingTest extends TestCase
         $order = $this->makeOrder();
         $viewer = \App\Models\User::factory()->create();
 
-        $response = $this->actingAs($viewer)->get(route('checkout.success', $order));
+        $response = $this->actingAs($viewer)->get($order->successUrl());
 
         $response->assertOk();
         // The order confirmation page legitimately displays the address

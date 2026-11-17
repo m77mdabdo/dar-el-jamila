@@ -110,7 +110,7 @@ class CartTrackingTest extends TestCase
         ]);
 
         $order = Order::first();
-        $response->assertRedirect(route('checkout.success', $order));
+        $response->assertRedirect($order->successUrl());
 
         $cart = Cart::where('user_id', $user->id)->first();
         $this->assertNotNull($cart);

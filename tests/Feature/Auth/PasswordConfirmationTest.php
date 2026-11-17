@@ -41,4 +41,19 @@ class PasswordConfirmationTest extends TestCase
 
         $response->assertSessionHasErrors();
     }
+
+    public function test_password_confirmation_is_rate_limited(): void
+    {
+        $user = User::factory()->create();
+
+        for ($i = 0; $i < 6; $i++) {
+            $this->actingAs($user)->post('/confirm-password', [
+                'password' => 'wrong-password',
+            ]);
+        }
+
+        $this->actingAs($user)->post('/confirm-password', [
+            'password' => 'wrong-password',
+        ])->assertStatus(429);
+    }
 }

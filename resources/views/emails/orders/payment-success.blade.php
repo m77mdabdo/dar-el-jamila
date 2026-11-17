@@ -23,5 +23,5 @@
         ],
     ])
 
-    @include('emails.partials.button', ['href' => route('checkout.success', $order), 'label' => __('emails.payment_success_button')])
+    @include('emails.partials.button', ['href' => $order->successUrl(), 'label' => __('emails.payment_success_button')])
 @endsection

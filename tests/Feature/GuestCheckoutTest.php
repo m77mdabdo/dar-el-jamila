@@ -74,7 +74,7 @@ class GuestCheckoutTest extends TestCase
         $response->assertSessionHasNoErrors();
         $order = Order::first();
         $this->assertNotNull($order);
-        $response->assertRedirect(route('checkout.success', $order));
+        $response->assertRedirect($order->successUrl());
 
         $this->assertNull($order->user_id);
         $this->assertSame('Guest Shopper', $order->customer_name);
@@ -343,7 +343,7 @@ class GuestCheckoutTest extends TestCase
         $second = $this->postGuestCheckout();
 
         $second->assertSessionHasNoErrors();
-        $second->assertRedirect(route('checkout.success', $firstOrder));
+        $second->assertRedirect($firstOrder->successUrl());
 
         $this->assertSame(1, Order::count());
         // Stock decremented once (5 - 2), not twice (5 - 4) — the real
@@ -472,7 +472,7 @@ class GuestCheckoutTest extends TestCase
 
         $order = Order::first();
 
-        $response = $this->get(route('checkout.success', $order));
+        $response = $this->get($order->successUrl());
 
         $response->assertOk();
         $response->assertSee(__('Create an account to track all your future orders easily.'));
@@ -491,6 +491,37 @@ class GuestCheckoutTest extends TestCase
         $this->assertSame('01000000000', $query['phone']);
     }
 
+    public function test_success_page_rejects_an_unsigned_url(): void
+    {
+        $product = $this->makeProduct();
+        $this->postJson(route('cart.add', $product), ['size' => 'M', 'quantity' => 1])->assertOk();
+        $this->postGuestCheckout([
+            'customer_email' => 'guest@example.com',
+        ])->assertSessionHasNoErrors();
+
+        $order = Order::first();
+
+        // Order ids are sequential, so without a signature anyone could walk
+        // /checkout/1/success, /checkout/2/success, ... and read every
+        // customer's name, email, phone and delivery address.
+        $this->get('/checkout/'.$order->id.'/success')->assertForbidden();
+        $this->get($order->successUrl().'tampered')->assertForbidden();
+    }
+
+    public function test_checkout_redirects_to_a_signed_success_url(): void
+    {
+        $product = $this->makeProduct();
+        $this->postJson(route('cart.add', $product), ['size' => 'M', 'quantity' => 1])->assertOk();
+
+        $response = $this->postGuestCheckout([
+            'customer_email' => 'guest@example.com',
+        ]);
+
+        $location = $response->headers->get('Location');
+        $this->assertStringContainsString('signature=', $location);
+        $this->get($location)->assertOk();
+    }
+
     public function test_success_page_does_not_show_the_account_prompt_when_already_authenticated(): void
     {
         $user = \App\Models\User::factory()->create();
@@ -502,7 +533,7 @@ class GuestCheckoutTest extends TestCase
 
         $order = Order::first();
 
-        $response = $this->actingAs($user)->get(route('checkout.success', $order));
+        $response = $this->actingAs($user)->get($order->successUrl());
 
         $response->assertOk();
         $response->assertDontSee(__('Create an account to track all your future orders easily.'));
