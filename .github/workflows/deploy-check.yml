@@ -1,0 +1,61 @@
+name: Deploy check
+
+# Hostinger deploys main automatically on every push. This waits for that
+# deploy and then checks the live site, so a broken release shows up as a
+# red run (and a GitHub email) within minutes instead of from a customer.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-check
+  cancel-in-progress: true
+
+env:
+  SITE: https://dareljamila.com
+
+jobs:
+  smoke:
+    name: Live site smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for Hostinger deploy
+        run: sleep 120
+
+      - name: Pages respond
+        run: |
+          fail=0
+          for path in / /up /shop /login /about /contact "/lang/ar"; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' -L --max-time 30 "$SITE$path")
+            echo "$code $path"
+            [ "$code" = "200" ] || fail=1
+          done
+          exit $fail
+
+      - name: Sensitive files are not exposed
+        run: |
+          fail=0
+          for path in /.env /artisan /composer.json /composer.lock /storage/logs/laravel.log /.git/HEAD; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 "$SITE$path")
+            echo "$code $path"
+            case "$code" in 403|404) ;; *) fail=1 ;; esac
+          done
+          exit $fail
+
+      - name: Security headers present
+        run: |
+          headers=$(curl -sI --max-time 30 "$SITE/login")
+          echo "$headers"
+          for h in X-Frame-Options X-Content-Type-Options Referrer-Policy Strict-Transport-Security; do
+            echo "$headers" | grep -qi "^$h:" || { echo "::error::Missing $h"; exit 1; }
+          done
+
+      - name: Order pages need a signature
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 "$SITE/checkout/1/success")
+          echo "$code /checkout/1/success"
+          [ "$code" = "403" ] || [ "$code" = "404" ]
