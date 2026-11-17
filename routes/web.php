@@ -131,7 +131,7 @@ Route::prefix('cart')->name('cart.')->group(function () {
 Route::prefix('checkout')->name('checkout.')->group(function () {
     Route::get('/', [CheckoutController::class, 'show'])->name('show');
     Route::post('/', [CheckoutController::class, 'store'])->middleware('throttle:10,1')->name('store');
-    Route::get('/{order}/success', [CheckoutController::class, 'success'])->name('success');
+    Route::get('/{order}/success', [CheckoutController::class, 'success'])->middleware('signed')->name('success');
 });
 
 Route::get('/dashboard', function () {
