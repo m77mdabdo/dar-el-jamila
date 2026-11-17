@@ -1,0 +1,24 @@
+name: Lock update
+on:
+  push:
+    branches: [tmp/lock-update]
+permissions:
+  contents: read
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, intl, gd, zip, pdo_sqlite, bcmath, gmp
+          coverage: none
+      - run: composer update dompdf/dompdf laravel/framework league/commonmark league/flysystem guzzlehttp/guzzle symfony/* phpseclib/phpseclib --with-all-dependencies --no-install --no-interaction 2>&1 | tee update.log
+      - run: composer audit --locked 2>&1 | tee -a update.log || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lock
+          path: |
+            composer.lock
+            update.log
